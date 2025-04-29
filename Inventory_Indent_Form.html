@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Inventory Indent Portal</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; transition: background-color 0.5s; }
+    .menu { margin-bottom: 20px; }
+    .menu button { margin-right: 10px; padding: 10px 20px; }
+    .section { display: none; margin-top: 20px; border: 1px solid #ccc; padding: 20px; border-radius: 8px; }
+    select, input[type="text"], input[type="number"], textarea { width: 300px; padding: 8px; margin-top: 5px; }
+    button { padding: 10px 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background-color: #f2f2f2; }
+    #infoTicker { font-size: 16px; margin-bottom: 20px; }
+    #otherItemFields { display: none; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<h1>Inventory Indent Portal</h1>
+<div id="infoTicker">Welcome to the Indent Portal</div>
+
+<div class="menu">
+  <button onclick="showSection('newIndent')">New Indent</button>
+  <button onclick="showSection('printIndent')">Print/Reprint Indent</button>
+  <button onclick="showSection('viewIndents')">View Previous Indents</button>
+</div>
+
+<div id="newIndent" class="section">
+  <h2>New Indent Form</h2>
+  <form id="indentForm">
+    Section Name:<br>
+    <select id="sectionSelect" required></select><br><br>
+
+    Section Incharge:<br>
+    <select id="sectionIncharge" required></select><br><br>
+
+    Item Name:<br>
+    <select id="itemSelect" onchange="handleItemSelection()" required></select><br><br>
+
+    <div id="otherItemFields">
+      New Item Name:<br>
+      <input type="text" id="newItemName"><br><br>
+      Description:<br>
+      <textarea id="newItemDescription"></textarea><br><br>
+    </div>
+
+    Quantity:<br>
+    <input type="number" id="quantity" required><br><br>
+
+    Priority:<br>
+    <select id="prioritySelect" required>
+      <option value="Normal">Normal</option>
+      <option value="Urgent">Urgent</option>
+    </select><br><br>
+
+    Remarks:<br>
+    <textarea id="remarks"></textarea><br><br>
+
+    <button type="button" onclick="addItem()">➕ Add Item to Indent</button>
+    <button type="button" onclick="resetForm()">🔄 Reset Form</button><br><br>
+  </form>
+
+  <h3>Items Added:</h3>
+  <table id="itemTable">
+    <thead>
+      <tr><th>Item Name</th><th>Quantity</th><th>Other Item Name</th><th>Description</th><th>Action</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <br>
+  <button id="submitIndentButton" type="button" onclick="submitIndent()">🚀 Submit Full Indent</button>
+</div>
+
+<div id="printIndent" class="section">
+  <h2>Print/Reprint Indent</h2>
+  (To be developed later)
+</div>
+
+<div id="viewIndents" class="section">
+  <h2>View Previous Indents</h2>
+  (To be developed later)
+</div>
+
+<!-- Popup Window -->
+<div id="printPopup" style="display:none;">
+  <h2>Indent Print Preview</h2>
+  <div id="printContent"></div>
+  <button onclick="window.print()">🖨️ Print Indent</button>
+</div>
+
+<script>
+let firstItemAdded = false;
+
+// Change section
+function showSection(sectionId) {
+  document.querySelectorAll('.section').forEach(section => section.style.display = 'none');
+  document.getElementById(sectionId).style.display = 'block';
+}
+
+// Handle Other Item selection
+function handleItemSelection() {
+  document.getElementById('otherItemFields').style.display = (document.getElementById('itemSelect').value === 'Other') ? 'block' : 'none';
+}
+
+// Add item to table
+function addItem() {
+  const item = document.getElementById('itemSelect').value;
+  const quantity = document.getElementById('quantity').value;
+  const otherItem = document.getElementById('newItemName').value;
+  const desc = document.getElementById('newItemDescription').value;
+
+  if (!item || !quantity) {
+    alert("Please select item and enter quantity.");
+    return;
+  }
+
+  if (!firstItemAdded) {
+    document.getElementById('sectionSelect').disabled = true;
+    document.getElementById('sectionIncharge').disabled = true;
+    firstItemAdded = true;
+  }
+
+  const tbody = document.getElementById('itemTable').querySelector('tbody');
+  const row = document.createElement('tr');
+  row.innerHTML = `<td>${item}</td><td>${quantity}</td><td>${otherItem}</td><td>${desc}</td><td><button onclick="this.parentElement.parentElement.remove()">❌</button></td>`;
+  tbody.appendChild(row);
+}
+
+// Reset form
+function resetForm() {
+  document.getElementById('indentForm').reset();
+  document.getElementById('itemTable').querySelector('tbody').innerHTML = '';
+  document.getElementById('sectionSelect').disabled = false;
+  document.getElementById('sectionIncharge').disabled = false;
+  document.getElementById('submitIndentButton').disabled = false;
+  firstItemAdded = false;
+  document.getElementById('otherItemFields').style.display = 'none';
+}
+
+// Submit Indent
+function submitIndent() {
+  if (document.getElementById('itemTable').querySelector('tbody').children.length === 0) {
+    alert("Please add at least one item before submitting.");
+    return;
+  }
+
+  const section = document.getElementById('sectionSelect').value;
+  const incharge = document.getElementById('sectionIncharge').value;
+  const priority = document.getElementById('prioritySelect').value;
+  const remarks = document.getElementById('remarks').value;
+
+  const items = [];
+  document.querySelectorAll('#itemTable tbody tr').forEach(row => {
+    const cells = row.querySelectorAll('td');
+    items.push({
+      itemName: cells[0].innerText,
+      quantity: cells[1].innerText,
+      otherName: cells[2].innerText,
+      description: cells[3].innerText
+    });
+  });
+
+  const payload = { section, incharge, priority, remarks, items };
+
+  fetch('https://script.google.com/macros/s/AKfycbzSvROMdtr1PbQr-W971wbKfNsXTcSj9oPyE-TsrWDr5n5eyUF2bNXR60ZaUjtnhFNt/exec', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(response => response.json())
+  .then(data => {
+    document.getElementById('submitIndentButton').disabled = true;
+    alert('Indent Submitted Successfully!');
+    showPrintPopup(data.indentData);
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Submission failed!');
+  });
+}
+
+// Show print preview popup
+function showPrintPopup(indentData) {
+  let content = `<h3>Department of Posts, PA Wing, Dak Bhawan</h3>`;
+  content += `<p><strong>Indent No:</strong> ${indentData.indentNumber}</p>`;
+  content += `<p><strong>Date:</strong> ${indentData.date}</p>`;
+  content += `<p><strong>Section:</strong> ${indentData.section}</p>`;
+  content += `<p><strong>Incharge:</strong> ${indentData.incharge}</p>`;
+  content += `<table><tr><th>S.No</th><th>Item Name</th><th>Quantity</th><th>Other Item Name</th><th>Description</th></tr>`;
+
+  indentData.items.forEach((item, index) => {
+    content += `<tr><td>${index + 1}</td><td>${item.itemName}</td><td>${item.quantity}</td><td>${item.otherName}</td><td>${item.description}</td></tr>`;
+  });
+
+  content += `</table><br><p>Signature: ________________________</p>`;
+  document.getElementById('printContent').innerHTML = content;
+  document.getElementById('printPopup').style.display = 'block';
+}
+
+// Fetch dynamic Section/Incharge/Item
+function fetchData() {
+  fetch('https://script.google.com/macros/s/AKfycbzSvROMdtr1PbQr-W971wbKfNsXTcSj9oPyE-TsrWDr5n5eyUF2bNXR60ZaUjtnhFNt/exec')
+    .then(response => response.json())
+    .then(data => {
+      populateDropdown('sectionSelect', data.sections);
+      populateDropdown('sectionIncharge', data.incharges);
+      populateDropdown('itemSelect', data.items);
+    })
+    .catch(error => {
+      console.error('Failed to load Section/Item names:', error);
+    });
+}
+
+function populateDropdown(id, options) {
+  const select = document.getElementById(id);
+  select.innerHTML = '<option value="">--Select--</option>';
+  options.forEach(option => {
+    const opt = document.createElement('option');
+    opt.value = option;
+    opt.textContent = option;
+    select.appendChild(opt);
+  });
+}
+
+window.onload = fetchData;
+</script>
+
+</body>
+</html>
